@@ -1,9 +1,14 @@
-import jwt from "jsonwebtoken";
+import crypto from 'crypto'
+
+// model imports 
 import User from "../models/User.model.js";
+import ApiKey from '../models/Api_keys.model.js';
+
+// utiliti method imports
 import { ApiResponse } from "../utils/api-response.js";
 import { setUserToke } from "../services/auth.service.js";
-// import { ApiError } from "../utils/api-error.js";
 
+// controllers
 const registerUser = async (req, res) => {
     const { name, email, phone, password } = req.body;
     console.log(name, email, phone, password);
@@ -64,7 +69,7 @@ const loginUser = async (req, res) => {
         const cookieOption = {
             httpOnly: true,
             secure: true,
-            maxAge: 24*60*60*1000
+            maxAge: 24 * 60 * 60 * 1000
         }
 
         res.cookie("token", token, cookieOption)
@@ -80,7 +85,20 @@ const loginUser = async (req, res) => {
 }
 
 const generateApiKey = async (req, res) => {
+    try {
+        const user = await User.findById(req.user.id).select('-password')
+        const newApiKey = crypto.randomBytes(32).toString("hex")
 
+        const existingkeys = await ApiKey
+
+        res.status(200).json(
+            new ApiResponse(200, { user: user })
+        )
+    } catch (error) {
+        res.status(400).json(
+            new ApiResponse(400, { message: "No user found" })
+        )
+    }
 }
 
 const getMe = async (req, res) => {
@@ -88,15 +106,15 @@ const getMe = async (req, res) => {
         const user = await User.findById(req.user.id).select('-password')
 
         res.status(200).json(
-            new ApiResponse(200, {user: user})
+            new ApiResponse(200, { user: user })
         )
     } catch (error) {
         res.status(400).json(
-            new ApiResponse(400, {message: "No user found"})
+            new ApiResponse(400, { message: "No user found" })
         )
     }
 
-    
+
 }
 
 export {
