@@ -1,17 +1,12 @@
-import crypto from 'crypto'
-
-// model imports 
+import bcrypt from "bcryptjs";
 import User from "../models/User.model.js";
-import ApiKey from '../models/Api_keys.model.js';
-
-// utiliti method imports
 import { ApiResponse } from "../utils/api-response.js";
+import { ApiError } from '../utils/api-error.js';
 import { setUserToke } from "../services/auth.service.js";
 
 // controllers
 const registerUser = async (req, res) => {
-    const { name, email, phone, password } = req.body;
-    console.log(name, email, phone, password);
+    const { name, phone, email, password } = req.body;
 
     if (!name || !email || !phone || !password) {
         res.status(400).json(
@@ -35,12 +30,14 @@ const registerUser = async (req, res) => {
             password
         })
 
+        user.save()
+
         res.status(201).json(
             new ApiResponse(201, { message: "User registered successfull" })
         )
     } catch (error) {
         res.status(400).json(
-            new ApiResponse(400, { message: "something want wrong" })
+            new ApiError(400, { message: "something want wrong" })
         )
     }
 }
@@ -49,18 +46,26 @@ const loginUser = async (req, res) => {
     const { email, password } = req.body
     if (!email || !password) {
         return res.status(400).json(
-            new ApiResponse(400, { message: "All fields are required" })
+            new ApiError(400, { message: "All fields are required" })
         )
     }
 
     try {
         const user = await User.findOne({
             email
-        })
+        }).select('-password')
 
         if (!user) {
             return res.status(400).json(
-                new ApiResponse(400, { message: "User dose not exsists." })
+                new ApiError(400, { message: "User dose not exsists." })
+            )
+        }
+
+        const hashedPassword = await bcrypt.hash(password, 10);
+
+        if (user.password == hashedPassword) {
+            return res.status(401).json(
+                new ApiResponse(401, {meaasge: "Invalid Password"})
             )
         }
 
@@ -84,23 +89,6 @@ const loginUser = async (req, res) => {
     }
 }
 
-const generateApiKey = async (req, res) => {
-    try {
-        const user = await User.findById(req.user.id).select('-password')
-        const newApiKey = crypto.randomBytes(32).toString("hex")
-
-        const existingkeys = await ApiKey
-
-        res.status(200).json(
-            new ApiResponse(200, { user: user })
-        )
-    } catch (error) {
-        res.status(400).json(
-            new ApiResponse(400, { message: "No user found" })
-        )
-    }
-}
-
 const getMe = async (req, res) => {
     try {
         const user = await User.findById(req.user.id).select('-password')
@@ -113,13 +101,10 @@ const getMe = async (req, res) => {
             new ApiResponse(400, { message: "No user found" })
         )
     }
-
-
 }
 
 export {
     registerUser,
     loginUser,
-    generateApiKey,
     getMe,
 }

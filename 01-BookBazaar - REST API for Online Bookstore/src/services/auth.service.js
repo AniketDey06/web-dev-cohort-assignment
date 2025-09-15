@@ -1,5 +1,6 @@
 import jwt from "jsonwebtoken";
 import { ApiResponse } from "../utils/api-response.js";
+import { ApiError } from "../utils/api-error.js";
 
 const setUserToke = (user) => {
     return jwt.sign(
@@ -16,7 +17,7 @@ const setUserToke = (user) => {
 
 const verifyUserToken = (token) => {
     if (!token) {
-        new ApiResponse(400, {message: "no token is there"})
+        new ApiError(400, {message: "no token is there"})
     }
     
     try {
